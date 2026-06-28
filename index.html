@@ -140,6 +140,16 @@
     </div>
     <div class="sheet" id="sheet"><div class="vacio">Agrega etiquetas para ver la hoja.</div></div>
   </div>
+
+  <!-- HISTORIAL -->
+  <div class="panel no-print">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
+      <label class="lbl" style="margin:0">🕓 Historial — últimas 30 creaciones (<span id="hcnt">0</span>)</label>
+      <button class="b-rojo" onclick="vaciarHist()">Vaciar historial</button>
+    </div>
+    <p class="hint">Se guarda en este navegador. Clic en “↺ Usar” para volver a cargar un ítem y reimprimir.</p>
+    <div id="histGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(155px,1fr));gap:8px;margin-top:10px"><div class="vacio">Sin historial todavía.</div></div>
+  </div>
 </div>
 
 <div id="toast" style="position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#323232;color:#fff;padding:12px 20px;border-radius:8px;font-size:14px;opacity:0;pointer-events:none;transition:opacity .2s;z-index:999"></div>
@@ -213,13 +223,13 @@ function leerForm(){
 function agregarUno(){
   const it=leerForm(); if(!it) return;
   it.cant=Math.max(1,parseInt($('copias').value)||1);
-  items.push(it); limpiarForm(); render();
+  items.push(it); addHist(it); limpiarForm(); render();
   mostrarMsg('msg',`✅ Agregada ×${it.cant} (${totalLabels()} etiquetas en total).`,'ok'); $('cod').focus();
 }
 function llenarHoja(){
   const it=leerForm(); if(!it) return;
   it.cant=perPage().per;
-  items.push(it); limpiarForm(); render();
+  items.push(it); addHist(it); limpiarForm(); render();
   mostrarMsg('msg',`✅ Hoja llena: ×${it.cant} copias de este sticker.`,'ok'); $('cod').focus();
 }
 function totalLabels(){return items.reduce((s,it)=>s+(it.cant||1),0)}
@@ -231,7 +241,8 @@ function agregarLista(){
     const c=norm(p[0]||'');
     if(!c){bad++;continue}
     const cant=Math.max(1,parseInt(p[3])||1);
-    items.push({codigo13:c,desc:(p[1]||'').trim().toUpperCase(),precio:(p[2]||'').trim(),foto:null,cant});n++;
+    const it={codigo13:c,desc:(p[1]||'').trim().toUpperCase(),precio:(p[2]||'').trim(),foto:null,cant};
+    items.push(it); addHist(it); n++;
   }
   $('bulk').value='';render();
   mostrarMsg('msg2',`✅ ${n} agregadas`+(bad?` · ${bad} sin código válido (saltadas)`:'')+'. Asigna fotos abajo.', bad?'warn':'ok');
@@ -286,6 +297,44 @@ function render(){
 $('cod').addEventListener('keydown',e=>{if(e.key==='Enter')agregarUno()});
 $('precio').addEventListener('keydown',e=>{if(e.key==='Enter')agregarUno()});
 $('cod').addEventListener('input',e=>{e.target.value=e.target.value.replace(/\D/g,'')});
+
+// ===== Historial (últimas 30, guardado en el navegador) =====
+const HKEY='a4_hist'; let historial=[];
+function cargarHist(){try{historial=JSON.parse(localStorage.getItem(HKEY)||'[]')}catch(e){historial=[]}}
+function guardarHist(){try{localStorage.setItem(HKEY,JSON.stringify(historial))}catch(e){while(historial.length>1){historial.pop();try{localStorage.setItem(HKEY,JSON.stringify(historial));return}catch(_){}}}}
+function addHist(it){
+  if(!it||!it.codigo13)return;
+  const e={id:String(Date.now())+'_'+Math.floor(performance.now()),ts:Date.now(),codigo13:it.codigo13,desc:it.desc||'',precio:it.precio||'',foto:it.foto||null};
+  historial=historial.filter(h=>!(h.codigo13===e.codigo13&&h.desc===e.desc&&h.precio===e.precio)); // sin duplicados (mueve al tope)
+  historial.unshift(e);
+  if(historial.length>30) historial=historial.slice(0,30);
+  guardarHist(); renderHist();
+}
+function fechaH(ts){const d=new Date(ts);return d.toLocaleDateString()+' '+d.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}
+function renderHist(){
+  const g=$('histGrid'); if(!g)return; $('hcnt').textContent=historial.length;
+  if(!historial.length){g.innerHTML='<div class="vacio">Sin historial todavía.</div>';return}
+  g.innerHTML=historial.map(e=>{
+    const img=e.foto?`<img src="${e.foto}" style="width:100%;height:58px;object-fit:contain;border:1px solid #eee;border-radius:4px">`:`<div style="height:58px;display:flex;align-items:center">${svgEAN13(e.codigo13)}</div>`;
+    const pr=e.precio?` — $${esc(e.precio)}`:'';
+    return `<div style="border:1px solid var(--bd);border-radius:8px;padding:6px;font-size:11px">${img}
+      <div style="font-weight:700;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(e.desc||e.codigo13)}${pr}</div>
+      <div style="color:#888;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${e.codigo13} · ${fechaH(e.ts)}</div>
+      <div style="display:flex;gap:4px;margin-top:5px">
+        <button class="b-azul" style="padding:4px 6px;font-size:12px;flex:1" onclick="usarHist('${e.id}')">↺ Usar</button>
+        <button class="b-gris" style="padding:4px 8px;font-size:12px" onclick="quitarHist('${e.id}')">🗑️</button>
+      </div></div>`;
+  }).join('');
+}
+function findH(id){return historial.find(e=>e.id===id)}
+function usarHist(id){const e=findH(id);if(!e)return;verTab(1);
+  $('cod').value=e.codigo13;$('desc').value=e.desc;$('precio').value=e.precio;fotoTmp=e.foto||null;
+  if(e.foto){$('mini').src=e.foto;$('mini').style.display='';$('dztxt').style.display='none'}else{$('mini').style.display='none';$('mini').src='';$('dztxt').style.display=''}
+  window.scrollTo({top:0,behavior:'smooth'});toast('↺ Cargado — dale “Agregar” o “Llenar hoja”')}
+function quitarHist(id){historial=historial.filter(e=>e.id!==id);guardarHist();renderHist()}
+function vaciarHist(){if(historial.length&&confirm('¿Vaciar el historial?')){historial=[];guardarHist();renderHist()}}
+
+cargarHist(); renderHist();
 render();
 </script>
 </body>
