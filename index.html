@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Etiquetas A4 — Generador masivo (EAN-13)</title>
+<style>
+  :root{ --azul:#1565c0; --azul2:#0d47a1; --gris:#f4f6f8; --bd:#d0d7de; --verde:#2e7d32; --rojo:#c62828; }
+  *{box-sizing:border-box}
+  body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;margin:0;background:var(--gris);color:#1a1a1a}
+  header{background:linear-gradient(135deg,var(--azul2),var(--azul));color:#fff;padding:16px 22px}
+  header h1{margin:0;font-size:19px}
+  header p{margin:4px 0 0;font-size:13px;opacity:.9}
+  .wrap{max-width:1100px;margin:0 auto;padding:18px}
+  .panel{background:#fff;border:1px solid var(--bd);border-radius:12px;padding:18px;margin-bottom:16px;box-shadow:0 1px 3px rgba(0,0,0,.05)}
+  label.lbl{display:block;font-size:12px;font-weight:600;color:#444;margin-bottom:5px;text-transform:uppercase;letter-spacing:.03em}
+  input[type=text],input[type=number],textarea{width:100%;padding:10px 12px;font-size:15px;border:1.5px solid var(--bd);border-radius:8px;font-family:inherit}
+  input.mono{font-family:"SF Mono",Menlo,monospace;letter-spacing:1px}
+  textarea{min-height:120px;font-family:"SF Mono",Menlo,monospace;font-size:13px}
+  input:focus,textarea:focus{outline:none;border-color:var(--azul);box-shadow:0 0 0 3px rgba(21,101,192,.15)}
+  .row{display:flex;gap:14px;flex-wrap:wrap;align-items:flex-end}
+  .campo{flex:1;min-width:140px}
+  button{padding:10px 18px;font-size:15px;font-weight:600;border:none;border-radius:8px;cursor:pointer;transition:filter .15s}
+  button:hover{filter:brightness(1.08)}
+  .b-azul{background:var(--azul);color:#fff}.b-verde{background:var(--verde);color:#fff}.b-gris{background:#e3e7eb;color:#333}.b-rojo{background:#fff;color:var(--rojo);border:1.5px solid var(--rojo)}
+  .tabs{display:flex;gap:8px;margin-bottom:14px}
+  .tab{padding:9px 16px;border-radius:8px 8px 0 0;background:#e8ebee;cursor:pointer;font-weight:600;font-size:14px}
+  .tab.act{background:var(--azul);color:#fff}
+  .dz{border:2px dashed var(--bd);border-radius:8px;padding:12px;text-align:center;color:#666;cursor:pointer;font-size:13px;min-height:48px;display:flex;align-items:center;justify-content:center;gap:8px}
+  .dz:hover{border-color:var(--azul);color:var(--azul)}
+  .dz.over{border-color:var(--verde);background:#e8f5e9;color:var(--verde)}
+  .dz img{max-height:60px;border-radius:4px;border:1px solid #ddd}
+  .ctrls{display:flex;gap:16px;flex-wrap:wrap;align-items:flex-end}
+  .ctrls .campo{min-width:auto;flex:none}
+  .ctrls input[type=number]{width:80px}
+  .hint{font-size:12px;color:#777;margin-top:8px}
+  .msg{margin-top:10px;font-size:14px;padding:9px 12px;border-radius:8px;display:none}
+  .msg.ok{background:#e8f5e9;color:var(--verde);display:block}.msg.err{background:#ffebee;color:var(--rojo);display:block}.msg.warn{background:#fff3e0;color:#ef6c00;display:block}
+
+  /* hoja A4 */
+  #info{font-size:13px;color:#333;margin:6px 0 12px;font-weight:600}
+  .sheet{background:#fff;border:1px solid var(--bd);padding:var(--mpad);display:flex;flex-wrap:wrap;gap:var(--gap);align-content:flex-start;
+    width:var(--pw);min-height:var(--ph);margin:0 auto;box-shadow:0 1px 6px rgba(0,0,0,.12)}
+  .label{width:var(--lw);height:var(--lh);border:1px solid #e3e3e3;border-radius:1.2mm;padding:1.2mm;display:flex;flex-direction:column;overflow:hidden;background:#fff;break-inside:avoid;page-break-inside:avoid;position:relative}
+  .label .x{position:absolute;top:0;right:1px;border:none;background:none;color:#bbb;cursor:pointer;font-size:12px;line-height:1;padding:1px 3px}
+  .label .x:hover{color:var(--rojo)}
+  .label .nom{font-weight:700;line-height:1.05;text-align:center;overflow:hidden}
+  .label .body{flex:1;display:flex;align-items:center;gap:1.5mm;min-height:0;margin-top:.6mm}
+  .label .foto{height:100%;max-width:46%;object-fit:contain;border-radius:.6mm}
+  .label .bar{flex:1;height:100%;display:flex;align-items:center;justify-content:center;min-width:0}
+  .label .bar svg{width:100%;height:100%}
+  .label.nofoto .bar{flex:1}
+  .vacio{color:#999;padding:20px;text-align:center;width:100%}
+
+  @media print{
+    header,.no-print{display:none!important}
+    .wrap{max-width:none;padding:0;margin:0}
+    .panel{display:none}
+    #hojaPanel{display:block!important;border:none;box-shadow:none;padding:0;margin:0}
+    .sheet{box-shadow:none;border:none;width:auto;min-height:auto;margin:0;padding:var(--mpad)}
+    .label{border:1px solid #ccc}
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>🏷️ Etiquetas A4 — Generador masivo</h1>
+  <p>Mete varios ítems (código + foto + descripción + precio) e imprime una hoja A4 llena de etiquetas escaneables.</p>
+</header>
+
+<div class="wrap">
+
+  <!-- ENTRADA -->
+  <div class="panel no-print">
+    <div class="tabs">
+      <div class="tab act" id="tab1" onclick="verTab(1)">➊ Uno por uno</div>
+      <div class="tab" id="tab2" onclick="verTab(2)">➋ Pegar lista (Excel)</div>
+    </div>
+
+    <!-- modo 1 -->
+    <div id="modo1">
+      <div class="row">
+        <div class="campo" style="flex:1.4"><label class="lbl">Código (12/13 díg)</label><input type="text" id="cod" class="mono" inputmode="numeric" placeholder="7401234567890"></div>
+        <div class="campo" style="flex:2"><label class="lbl">Descripción</label><input type="text" id="desc" placeholder="VASO DE AGUA 500ML"></div>
+        <div class="campo"><label class="lbl">Precio</label><input type="text" id="precio" placeholder="3.99"></div>
+      </div>
+      <div class="row" style="margin-top:12px">
+        <div class="campo" style="flex:2"><label class="lbl">Foto (opcional)</label>
+          <div class="dz" id="dz" onclick="$('file').click()"><span id="dztxt">📷 Arrastra, pega (⌘V) o haz clic</span><img id="mini" style="display:none"></div>
+          <input type="file" id="file" accept="image/*" style="display:none" onchange="fileSel(event)">
+        </div>
+        <button class="b-verde" onclick="agregarUno()">➕ Agregar etiqueta</button>
+        <button class="b-gris" type="button" onclick="limpiarForm()">Limpiar</button>
+      </div>
+      <div id="msg" class="msg"></div>
+    </div>
+
+    <!-- modo 2 -->
+    <div id="modo2" style="display:none">
+      <label class="lbl">Pega desde Excel — una fila por ítem, columnas: CÓDIGO &nbsp;[tab]&nbsp; DESCRIPCIÓN &nbsp;[tab]&nbsp; PRECIO</label>
+      <textarea id="bulk" placeholder="7401234567890	VASO DE AGUA 500ML	3.99&#10;7409876543210	TERMO ACERO 1L	8.99"></textarea>
+      <div class="row" style="margin-top:10px">
+        <button class="b-azul" onclick="agregarLista()">➕ Agregar lista</button>
+        <span class="hint">Luego asigna la foto a cada uno en la lista de abajo (las que falten saldrán solo con barra + texto).</span>
+      </div>
+      <div id="msg2" class="msg"></div>
+    </div>
+  </div>
+
+  <!-- CONFIG ETIQUETA / HOJA -->
+  <div class="panel no-print">
+    <label class="lbl">Tamaño de etiqueta y hoja</label>
+    <div class="ctrls">
+      <div class="campo"><label class="lbl">Ancho (mm)</label><input type="number" id="lw" value="50" min="20" max="200" onchange="render()"></div>
+      <div class="campo"><label class="lbl">Alto (mm)</label><input type="number" id="lh" value="30" min="15" max="200" onchange="render()"></div>
+      <div class="campo"><label class="lbl">Separación (mm)</label><input type="number" id="gap" value="2" min="0" max="20" step="0.5" onchange="render()"></div>
+      <div class="campo"><label class="lbl">Margen (mm)</label><input type="number" id="margin" value="8" min="0" max="25" step="0.5" onchange="render()"></div>
+      <div class="campo"><label class="lbl">Orientación</label>
+        <select id="orient" onchange="render()" style="padding:9px;border:1.5px solid var(--bd);border-radius:8px">
+          <option value="portrait">Vertical</option><option value="landscape">Horizontal</option>
+        </select></div>
+    </div>
+    <p class="hint">Etiquetas estándar tipo Zebra: 50×30, 40×30, 60×40 mm. La barra muy pequeña puede costar escanearla — recomendado ancho ≥ 40 mm.</p>
+  </div>
+
+  <!-- HOJA -->
+  <div class="panel" id="hojaPanel">
+    <div class="no-print" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px">
+      <div>
+        <h2 style="margin:0;font-size:16px">Hoja A4 (<span id="cnt">0</span> etiquetas)</h2>
+        <div id="info"></div>
+      </div>
+      <div style="display:flex;gap:8px">
+        <button class="b-gris" onclick="window.print()">🖨️ Imprimir / Guardar PDF</button>
+        <button class="b-rojo" onclick="vaciar()">Vaciar todo</button>
+      </div>
+    </div>
+    <div class="sheet" id="sheet"><div class="vacio">Agrega etiquetas para ver la hoja.</div></div>
+  </div>
+</div>
+
+<div id="toast" style="position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#323232;color:#fff;padding:12px 20px;border-radius:8px;font-size:14px;opacity:0;pointer-events:none;transition:opacity .2s;z-index:999"></div>
+
+<script>
+const $=id=>document.getElementById(id);
+// ===== EAN-13 (verificado) =====
+const L=['0001101','0011001','0010011','0111101','0100011','0110001','0101111','0111011','0110111','0001011'];
+const G=['0100111','0110011','0011011','0100001','0011101','0111001','0000101','0010001','0001001','0010111'];
+const R=['1110010','1100110','1101100','1000010','1011100','1001110','1010000','1000100','1001000','1110100'];
+const PAR=['LLLLLL','LLGLGG','LLGGLG','LLGGGL','LGLLGG','LGGLLG','LGGGLL','LGLGLG','LGLGGL','LGGLGL'];
+function chk(d){let s=0;for(let i=0;i<12;i++)s+=(+d[i])*(i%2===0?1:3);return(10-(s%10))%10}
+function norm(raw){const d=(raw||'').replace(/\D/g,'');if(d.length===12)return d+chk(d);if(d.length===13)return d;return null}
+function svgEAN13(c){
+  const d=c.split('').map(Number),pat=PAR[d[0]];let b='101';
+  for(let i=0;i<6;i++)b+=(pat[i]==='L'?L:G)[d[1+i]];b+='01010';
+  for(let i=0;i<6;i++)b+=R[d[7+i]];b+='101';
+  const mw=2,qzL=11,qzR=7,tot=qzL+95+qzR,aB=mw*68,ex=mw*9,mt=mw*11,W=tot*mw,H=aB+ex+mt;
+  const gd=new Set([0,1,2,45,46,47,48,49,92,93,94]);let rc='';
+  for(let i=0;i<b.length;i++)if(b[i]==='1'){const x=(qzL+i)*mw,h=aB+(gd.has(i)?ex:0);rc+=`<rect x="${x}" y="0" width="${mw}" height="${h}" fill="#000"/>`}
+  const fs=Math.round(mw*11),ty=aB+ex+Math.round(mw*9);
+  function tx(m){return(qzL+m)*mw}
+  let t=`<text x="${(qzL-5)*mw}" y="${ty}" font-family="monospace" font-size="${fs}" text-anchor="middle">${d[0]}</text>`;
+  for(let k=0;k<6;k++)t+=`<text x="${tx(3+7*k+3.5)}" y="${ty}" font-family="monospace" font-size="${fs}" text-anchor="middle">${d[1+k]}</text>`;
+  for(let k=0;k<6;k++)t+=`<text x="${tx(50+7*k+3.5)}" y="${ty}" font-family="monospace" font-size="${fs}" text-anchor="middle">${d[7+k]}</text>`;
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet"><rect width="${W}" height="${H}" fill="#fff"/>${rc}${t}</svg>`;
+}
+function esc(s){return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
+function toast(m){const t=$('toast');t.textContent=m;t.style.opacity=1;clearTimeout(t._h);t._h=setTimeout(()=>t.style.opacity=0,1800)}
+
+// ===== estado =====
+let items=[]; // {codigo13, desc, precio, foto}
+let fotoTmp=null;
+
+function verTab(n){$('tab1').classList.toggle('act',n===1);$('tab2').classList.toggle('act',n===2);$('modo1').style.display=n===1?'':'none';$('modo2').style.display=n===2?'':'none'}
+
+// foto en modo 1
+function setFoto(file){
+  if(!file||!(file.type||'').startsWith('image/')){toast('Eso no es imagen');return}
+  const r=new FileReader();r.onload=()=>{fotoTmp=r.result;$('mini').src=r.result;$('mini').style.display='';$('dztxt').style.display='none'};r.readAsDataURL(file);
+}
+function fileSel(e){const f=e.target.files&&e.target.files[0];if(f)setFoto(f)}
+(function(){const dz=$('dz');if(!dz)return;
+  ['dragenter','dragover'].forEach(ev=>dz.addEventListener(ev,e=>{e.preventDefault();dz.classList.add('over')}));
+  ['dragleave','dragend'].forEach(ev=>dz.addEventListener(ev,e=>{e.preventDefault();dz.classList.remove('over')}));
+  dz.addEventListener('drop',e=>{e.preventDefault();dz.classList.remove('over');const f=e.dataTransfer.files&&e.dataTransfer.files[0];if(f)setFoto(f)});
+  window.addEventListener('dragover',e=>e.preventDefault());window.addEventListener('drop',e=>{if(!dz.contains(e.target))e.preventDefault()});
+})();
+document.addEventListener('paste',e=>{
+  const ae=document.activeElement,enCampo=ae&&(ae.tagName==='INPUT'||ae.tagName==='TEXTAREA');
+  const txt=(e.clipboardData&&e.clipboardData.getData('text/plain'))||'';
+  if(enCampo&&txt.trim()!=='')return;
+  for(const it of (e.clipboardData&&e.clipboardData.items)||[]){if(it.type&&it.type.startsWith('image/')){const f=it.getAsFile();if(f){setFoto(f);toast('📷 Foto pegada');e.preventDefault()}break}}
+});
+function limpiarForm(){$('cod').value='';$('desc').value='';$('precio').value='';fotoTmp=null;$('mini').style.display='none';$('mini').src='';$('dztxt').style.display='';$('file').value=''}
+
+function mostrarMsg(id,t,c){const m=$(id);m.textContent=t;m.className='msg '+c;if(!t)m.className='msg'}
+
+function agregarUno(){
+  const c=norm($('cod').value);
+  if(!c){mostrarMsg('msg','Mete un código de 12 o 13 dígitos.','err');return}
+  items.push({codigo13:c,desc:($('desc').value||'').trim().toUpperCase(),precio:($('precio').value||'').trim(),foto:fotoTmp});
+  limpiarForm();render();mostrarMsg('msg','✅ Agregada ('+items.length+' en total).','ok');$('cod').focus();
+}
+function agregarLista(){
+  const lines=$('bulk').value.split('\n').map(l=>l.trim()).filter(Boolean);
+  let n=0,bad=0;
+  for(const ln of lines){
+    const p=ln.split('\t').length>1?ln.split('\t'):ln.split(/\s{2,}|,|;/);
+    const c=norm(p[0]||'');
+    if(!c){bad++;continue}
+    items.push({codigo13:c,desc:(p[1]||'').trim().toUpperCase(),precio:(p[2]||'').trim(),foto:null});n++;
+  }
+  $('bulk').value='';render();
+  mostrarMsg('msg2',`✅ ${n} agregadas`+(bad?` · ${bad} sin código válido (saltadas)`:'')+'. Asigna fotos abajo.', bad?'warn':'ok');
+}
+
+// asignar foto a un item de la hoja
+function fotoItem(i){
+  const inp=document.createElement('input');inp.type='file';inp.accept='image/*';
+  inp.onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{items[i].foto=r.result;render();toast('📷 Foto asignada')};r.readAsDataURL(f)};
+  inp.click();
+}
+function quitar(i){items.splice(i,1);render()}
+function vaciar(){if(items.length&&confirm('¿Vaciar todas las etiquetas?')){items=[];render()}}
+
+// A4 (mm)
+function render(){
+  const lw=+$('lw').value||50, lh=+$('lh').value||30, gap=+$('gap').value||0, mg=+$('margin').value||0;
+  const port=$('orient').value==='portrait';
+  const A4w=port?210:297, A4h=port?297:210;
+  document.documentElement.style.setProperty('--lw',lw+'mm');
+  document.documentElement.style.setProperty('--lh',lh+'mm');
+  document.documentElement.style.setProperty('--gap',gap+'mm');
+  document.documentElement.style.setProperty('--mpad',mg+'mm');
+  document.documentElement.style.setProperty('--pw',A4w+'mm');
+  document.documentElement.style.setProperty('--ph',A4h+'mm');
+  // pagestyle dinámico
+  let ps=$('pagestyle');if(!ps){ps=document.createElement('style');ps.id='pagestyle';document.head.appendChild(ps)}
+  ps.textContent=`@media print{@page{size:A4 ${port?'portrait':'landscape'};margin:0}}`;
+  // cuántas caben
+  const usableW=A4w-2*mg, usableH=A4h-2*mg;
+  const cols=Math.max(1,Math.floor((usableW+gap)/(lw+gap)));
+  const rowsP=Math.max(1,Math.floor((usableH+gap)/(lh+gap)));
+  const perPage=cols*rowsP, pages=Math.max(1,Math.ceil(items.length/perPage));
+  $('cnt').textContent=items.length;
+  $('info').textContent=`${cols} × ${rowsP} = ${perPage} por página · ${pages} página(s) · etiqueta ${lw}×${lh} mm`;
+  // fuente proporcional al alto de etiqueta
+  const nameFs=Math.max(5,Math.min(11,lh*0.10)).toFixed(1);
+  const sheet=$('sheet');
+  if(!items.length){sheet.innerHTML='<div class="vacio">Agrega etiquetas para ver la hoja.</div>';return}
+  sheet.innerHTML=items.map((it,idx)=>{
+    const precio=it.precio?` — $${esc(it.precio)}`:'';
+    const top=(it.desc||precio)?`<div class="nom" style="font-size:${nameFs}mm">${esc(it.desc)}${precio}</div>`:'';
+    const foto=it.foto?`<img class="foto" src="${it.foto}">`:'';
+    return `<div class="label${it.foto?'':' nofoto'}"><button class="x no-print" onclick="quitar(${idx})">×</button>${top}
+      <div class="body">${foto}<div class="bar">${svgEAN13(it.codigo13)}</div>
+      <button class="no-print" onclick="fotoItem(${idx})" title="Asignar foto" style="position:absolute;bottom:1px;left:2px;border:none;background:rgba(255,255,255,.7);font-size:11px;cursor:pointer;border-radius:3px">📷</button></div></div>`;
+  }).join('');
+}
+// enter para agregar
+$('cod').addEventListener('keydown',e=>{if(e.key==='Enter')agregarUno()});
+$('precio').addEventListener('keydown',e=>{if(e.key==='Enter')agregarUno()});
+$('cod').addEventListener('input',e=>{e.target.value=e.target.value.replace(/\D/g,'')});
+render();
+</script>
+</body>
+</html>
