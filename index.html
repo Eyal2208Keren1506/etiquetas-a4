@@ -89,9 +89,12 @@
           <div class="dz" id="dz" onclick="$('file').click()"><span id="dztxt">📷 Arrastra, pega (⌘V) o haz clic</span><img id="mini" style="display:none"></div>
           <input type="file" id="file" accept="image/*" style="display:none" onchange="fileSel(event)">
         </div>
-        <button class="b-verde" onclick="agregarUno()">➕ Agregar etiqueta</button>
+        <div class="campo" style="flex:0 0 90px"><label class="lbl">Copias</label><input type="number" id="copias" value="1" min="1"></div>
+        <button class="b-verde" onclick="agregarUno()">➕ Agregar</button>
+        <button class="b-azul" onclick="llenarHoja()">🖨️ Llenar hoja</button>
         <button class="b-gris" type="button" onclick="limpiarForm()">Limpiar</button>
       </div>
+      <p class="hint">“Llenar hoja” = agrega tantas copias del mismo sticker como quepan en la A4. O pon un número en “Copias”.</p>
       <div id="msg" class="msg"></div>
     </div>
 
@@ -191,16 +194,35 @@ document.addEventListener('paste',e=>{
   if(enCampo&&txt.trim()!=='')return;
   for(const it of (e.clipboardData&&e.clipboardData.items)||[]){if(it.type&&it.type.startsWith('image/')){const f=it.getAsFile();if(f){setFoto(f);toast('📷 Foto pegada');e.preventDefault()}break}}
 });
-function limpiarForm(){$('cod').value='';$('desc').value='';$('precio').value='';fotoTmp=null;$('mini').style.display='none';$('mini').src='';$('dztxt').style.display='';$('file').value=''}
+function limpiarForm(){$('cod').value='';$('desc').value='';$('precio').value='';if($('copias'))$('copias').value=1;fotoTmp=null;$('mini').style.display='none';$('mini').src='';$('dztxt').style.display='';$('file').value=''}
 
 function mostrarMsg(id,t,c){const m=$(id);m.textContent=t;m.className='msg '+c;if(!t)m.className='msg'}
 
-function agregarUno(){
-  const c=norm($('cod').value);
-  if(!c){mostrarMsg('msg','Mete un código de 12 o 13 dígitos.','err');return}
-  items.push({codigo13:c,desc:($('desc').value||'').trim().toUpperCase(),precio:($('precio').value||'').trim(),foto:fotoTmp});
-  limpiarForm();render();mostrarMsg('msg','✅ Agregada ('+items.length+' en total).','ok');$('cod').focus();
+function perPage(){
+  const lw=+$('lw').value||50,lh=+$('lh').value||30,gap=+$('gap').value||0,mg=+$('margin').value||0;
+  const port=$('orient').value==='portrait';const A4w=port?210:297,A4h=port?297:210;
+  const uw=A4w-2*mg,uh=A4h-2*mg;
+  const cols=Math.max(1,Math.floor((uw+gap)/(lw+gap))),rows=Math.max(1,Math.floor((uh+gap)/(lh+gap)));
+  return {cols,rows,per:cols*rows};
 }
+function leerForm(){
+  const c=norm($('cod').value);
+  if(!c){mostrarMsg('msg','Mete un código de 12 o 13 dígitos.','err');return null}
+  return {codigo13:c,desc:($('desc').value||'').trim().toUpperCase(),precio:($('precio').value||'').trim(),foto:fotoTmp};
+}
+function agregarUno(){
+  const it=leerForm(); if(!it) return;
+  it.cant=Math.max(1,parseInt($('copias').value)||1);
+  items.push(it); limpiarForm(); render();
+  mostrarMsg('msg',`✅ Agregada ×${it.cant} (${totalLabels()} etiquetas en total).`,'ok'); $('cod').focus();
+}
+function llenarHoja(){
+  const it=leerForm(); if(!it) return;
+  it.cant=perPage().per;
+  items.push(it); limpiarForm(); render();
+  mostrarMsg('msg',`✅ Hoja llena: ×${it.cant} copias de este sticker.`,'ok'); $('cod').focus();
+}
+function totalLabels(){return items.reduce((s,it)=>s+(it.cant||1),0)}
 function agregarLista(){
   const lines=$('bulk').value.split('\n').map(l=>l.trim()).filter(Boolean);
   let n=0,bad=0;
@@ -208,7 +230,8 @@ function agregarLista(){
     const p=ln.split('\t').length>1?ln.split('\t'):ln.split(/\s{2,}|,|;/);
     const c=norm(p[0]||'');
     if(!c){bad++;continue}
-    items.push({codigo13:c,desc:(p[1]||'').trim().toUpperCase(),precio:(p[2]||'').trim(),foto:null});n++;
+    const cant=Math.max(1,parseInt(p[3])||1);
+    items.push({codigo13:c,desc:(p[1]||'').trim().toUpperCase(),precio:(p[2]||'').trim(),foto:null,cant});n++;
   }
   $('bulk').value='';render();
   mostrarMsg('msg2',`✅ ${n} agregadas`+(bad?` · ${bad} sin código válido (saltadas)`:'')+'. Asigna fotos abajo.', bad?'warn':'ok');
@@ -241,21 +264,23 @@ function render(){
   const usableW=A4w-2*mg, usableH=A4h-2*mg;
   const cols=Math.max(1,Math.floor((usableW+gap)/(lw+gap)));
   const rowsP=Math.max(1,Math.floor((usableH+gap)/(lh+gap)));
-  const perPage=cols*rowsP, pages=Math.max(1,Math.ceil(items.length/perPage));
-  $('cnt').textContent=items.length;
-  $('info').textContent=`${cols} × ${rowsP} = ${perPage} por página · ${pages} página(s) · etiqueta ${lw}×${lh} mm`;
-  // fuente proporcional al alto de etiqueta
+  const per=cols*rowsP, total=totalLabels(), pages=Math.max(1,Math.ceil(total/per));
+  $('cnt').textContent=total;
+  $('info').textContent=`${cols} × ${rowsP} = ${per} por página · ${total} etiqueta(s) · ${pages} página(s) · ${items.length} producto(s) · ${lw}×${lh} mm`;
   const nameFs=Math.max(5,Math.min(11,lh*0.10)).toFixed(1);
   const sheet=$('sheet');
   if(!items.length){sheet.innerHTML='<div class="vacio">Agrega etiquetas para ver la hoja.</div>';return}
-  sheet.innerHTML=items.map((it,idx)=>{
+  let html='';
+  items.forEach((it,idx)=>{
     const precio=it.precio?` — $${esc(it.precio)}`:'';
     const top=(it.desc||precio)?`<div class="nom" style="font-size:${nameFs}mm">${esc(it.desc)}${precio}</div>`:'';
     const foto=it.foto?`<img class="foto" src="${it.foto}">`:'';
-    return `<div class="label${it.foto?'':' nofoto'}"><button class="x no-print" onclick="quitar(${idx})">×</button>${top}
-      <div class="body">${foto}<div class="bar">${svgEAN13(it.codigo13)}</div>
-      <button class="no-print" onclick="fotoItem(${idx})" title="Asignar foto" style="position:absolute;bottom:1px;left:2px;border:none;background:rgba(255,255,255,.7);font-size:11px;cursor:pointer;border-radius:3px">📷</button></div></div>`;
-  }).join('');
+    const one=`<div class="label${it.foto?'':' nofoto'}"><button class="x no-print" onclick="quitar(${idx})" title="Quitar este producto">×</button>${top}`+
+      `<div class="body">${foto}<div class="bar">${svgEAN13(it.codigo13)}</div>`+
+      `<button class="no-print" onclick="fotoItem(${idx})" title="Asignar foto" style="position:absolute;bottom:1px;left:2px;border:none;background:rgba(255,255,255,.7);font-size:11px;cursor:pointer;border-radius:3px">📷</button></div></div>`;
+    for(let k=0;k<(it.cant||1);k++) html+=one;
+  });
+  sheet.innerHTML=html;
 }
 // enter para agregar
 $('cod').addEventListener('keydown',e=>{if(e.key==='Enter')agregarUno()});
